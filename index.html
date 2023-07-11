@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <title>VueJS Notes</title>    
+</head>
+
+<body>
+
+    <style>
+        [v-cloak] {
+            display: none;
+        }
+    </style>
+
+<div class="container" id="app" v-cloak>
+    <div class="text-bg-primary p-3 mt-2 fw-bold fs-4 text-center border shadow">VueJS Notes</div>
+    <ul class="nav nav-tabs mt-2" id="myTab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="home-tab" data-bs-toggle="tab" data-bs-target="#home-tab-pane" type="button" role="tab" aria-controls="home-tab-pane" aria-selected="true">
+                Notes <i class="bi bi-stickies-fill"></i>
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile-tab-pane" type="button" role="tab" aria-controls="profile-tab-pane" aria-selected="false">
+                Contacts <i class="bi bi-people-fill"></i>
+            </button>
+        </li>        
+    </ul>        
+    <div class="tab-content" id="myTabContent">
+        <div class="tab-pane fade show active" id="home-tab-pane" role="tabpanel" aria-labelledby="home-tab" tabindex="0">
+            <div class="container">
+                <div class="row mt-3">
+                    <div class="col-4">
+                        <div class="alert alert-danger" v-if="messages_notes">{{messages_notes}}</div>
+                    </div>
+                    <div class="col-4">
+                        <span v-if="quantity_notes === 0" class="fw-bold">There are not any notes being shown</span>
+                        <span v-else-if="quantity_notes === 1" class="fw-bold">There is 1 note being shown</span>
+                        <span v-else="quantity_notes > 1" class="fw-bold">There are {{quantity_notes}} notes being shown</span>
+                    </div>
+                    <div class="col-4">
+                        <button class="btn btn-sm btn-warning" @click="newNoteForm = true" :class="quantity_notes === 30 ? 'disabled' : 'enabled'">
+                            Create Note <i class="bi bi-sticky-fill"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="container w-50 mt-3" v-if="newNoteForm">
+                    <div class="row">
+                        <form method="post" @submit.prevent="saveNote" class="mb-5">
+                            <div class="mb-1">
+                                <textarea class="form-control" name="annotations" id="annotations" placeholder="Add a description to your note"
+                                    style="resize: none;" rows="3" maxlength="150" @keyup="remaining" ></textarea>                                        
+                            </div>
+                            <div class="mb-3">
+                                <div class="form-text text-end">Characters remaining: {{note_length}}/150</div>
+                            </div>                                
+                            <div class="mb-3">
+                                <button type="button" class="btn btn-danger float-start" @click="newNoteForm = false">
+                                    Cancel Note <i class="bi bi-x-square-fill"></i>
+                                </button>
+                                <button type="submit" class="btn btn-success float-end">
+                                    Save Note <i class="bi bi-file-earmark-plus-fill"></i>
+                                </button>
+                            </div>
+                        </form>
+                    </div>                        
+                </div>
+                <div class="container mt-3">
+                    <div class="row mb-5">
+                        <div v-for="(note, index) in notes" :key="note.id" class="col-3 border border-1 border-secondary bg-warning fw-bolder" style="min-height: 200px;">
+                            <div class="row">
+                                <div class="col-12 text-end">
+                                    <i class="bi bi-trash-fill text-danger text-end" @click="deleteNote(note.id)" style="cursor: pointer;"></i>
+                                </div>
+                                <div class="col-12 p-4">
+                                    {{note.annotations}} 
+                                </div>                                    
+                            </div>                                                             
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="tab-pane fade" id="profile-tab-pane" role="tabpanel" aria-labelledby="profile-tab" tabindex="0">                
+            <div class="container">
+                <div class="row" v-if="listContacts">
+                    <div class="col-3">
+                        <select class="form-select form-select-sm mt-3" aria-label=".form-select-sm example" v-model="limit" @change="setQuantity">
+                            <option value="10" selected>Show 10 contacts (default)</option>
+                            <option value="20">Show 20 contacts</option>
+                            <option value="30">Show 30 contacts</option>
+                            <option value="40">Show 40 contacts</option>
+                            <option value="50">Show 50 contacts</option>
+                        </select>
+                    </div>
+                    <div class="col-3">
+                        <div class="fw-bold mt-3" v-if="quantity === 0">No contacts listed bellow</div>
+                        <div class="fw-bold mt-3" v-else-if="quantity === 1">{{quantity}} contact is listed bellow</div>
+                        <div class="fw-bold mt-3" v-else="quantity > 1">{{quantity}} contacts are listed bellow</div>
+                    </div>
+                    <div class="col-4">
+                        <div class="input-group mb-3 mt-3">
+                            <input type="text" class="form-control form-control-sm" name="search" id="search" placeholder="Search by name" />
+                            <button class="btn btn-sm btn-primary" type="button" @click="search">
+                                <i class="bi bi-search"></i>
+                            </button>
+                        </div>                            
+                    </div>
+                    <div class="col-2">
+                        <button class="btn btn-sm btn-success float-end mt-3" @click="showNewForm">
+                            New Contact <i class="bi bi-person-plus-fill"></i>
+                        </button>
+                    </div>                        
+                </div>
+                <div class="row" v-show="listContacts">
+                    <div class="col-12">
+                        <table class="table table-primary mt-3">
+                            <thead>
+                                <tr class="table-success">
+                                    <th scope="col">Name</th>
+                                    <th scope="col">Phone</th>
+                                    <th scope="col">E-mail</th>
+                                    <th scope="col">Picture</th>
+                                    <th scope="col">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody v-for="(contact, index) in contacts" :key="contact.id">
+                                <tr :class="{'table-info': (index % 2 === 0)}">                                        
+                                    <td>{{contact.username}}</td>
+                                    <td>{{contact.phone}}</td>
+                                    <td>{{contact.email}}</td>                                        
+                                    <td v-if="contact.picture !== ''"><img height="40" width="40" style="border-radius: 20px;" :src="`pictures/${contact.picture}`" /></td>
+                                    <td v-else><i class="bi bi-question-circle-fill" style="font-size: 1.5rem;"></i></td>
+                                    <td colspan="2">
+                                        <button class="btn btn-sm btn-primary" @click="showContactForm(contact)">
+                                            Show <i class="bi bi-info-circle-fill"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-success ms-2" @click="showEditForm(contact)">
+                                            Edit <i class="bi bi-pencil-square"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>                
+                        </table>
+                    </div>
+                    <div class="col-12">
+                        <div v-if="messages" class="alert alert-danger mt-3">
+                            {{ messages }}
+                        </div>
+                    </div>
+                </div>                    
+            </div>
+            <div class="container w-50 mt-3" v-if="newForm">
+                <form method="post" @submit.prevent="saveContact" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <h4 class="text-center">New Contact</h4>
+                    </div>
+                    <div class="mb-3">
+                        <input type="text" class="form-control" name="username" id="username" placeholder="Name"
+                        maxlength="30" required onblur="this.value=this.value.trim();" />
+                    </div>
+                    <div class="mb-3">                        
+                        <input type="text" class="form-control" name="phone" id="phone" placeholder="Phone"
+                            maxlength="15" required onblur="this.value=this.value.trim();" />
+                    </div>
+                    <div class="mb-3">
+                        <input type="email" class="form-control" name="email" id="email" maxlength="50" placeholder="E-mail"
+                        onblur="this.value=this.value.trim().toLowerCase();" />
+                    </div>
+                    <div class="mb-3">                        
+                        <input type="file" class="form-control" name="picture" id="picture" />
+                    </div>
+                    <div class="mb-3">                        
+                        <div v-if="error_messages" class="alert alert-danger">{{error_messages}}</div>
+                    </div>
+                    <button class="btn btn-danger" @click="hideNewForm">Cancel <i class="bi bi-x-circle-fill"></i></button>
+                    <button type="submit" class="btn btn-primary float-end">Save <i class="bi bi-save-fill"></i></button>
+                </form>
+            </div>
+            <div class="container w-50 mt-3 mb-5 d-flex justify-content-center" v-if="showContact">                    
+                <form method="post" @submit.prevent="updateContact" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <h4 class="text-center">Show Contact</h4>
+                    </div>
+                    <div class="card" style="min-width: 300px;">
+                        <img v-if="contact.picture !== ''" class="card-img-top" :src="`pictures/${contact.picture}`" />
+                        <i v-else class="bi bi-question-circle-fill text-center" style="font-size: 7rem;"></i>
+                        <div class="card-body">
+                            <h5 class="card-title text-center">Information</h5>                                
+                        </div>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item" v-model="contact.username"><i class="bi bi-person-fill"></i> {{contact.username}}</li>
+                            <li class="list-group-item" v-model="contact.phone"><i class="bi bi-telephone-fill"></i> {{contact.phone}}</li>
+                            <li class="list-group-item" v-model="contact.email"><i class="bi bi-envelope-at-fill"></i> {{contact.email}}</li>
+                        </ul>
+                        <div class="card-body">
+                            <button class="btn btn-primary float-start" @click="hideContactForm">
+                                Return <i class="bi bi-arrow-return-left"></i>
+                            </button>
+                            <button class="btn btn-danger float-end" @click="()=>{deleteId = contact.id; deletePicture = contact.picture}" data-bs-toggle="modal" data-bs-target="#exampleModal">
+                                Delete <i class="bi bi-person-x-fill"></i>
+                            </button>
+                        </div>
+                    </div>
+                                            
+                    <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h1 class="modal-title fs-5" id="exampleModalLabel">
+                                    <i class="bi bi-exclamation-circle-fill text-warning"></i> Delete Contact
+                                    </h1>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body text-center">
+                                    <h5 class="mb-3 fw-bold">Are you sure you want to delete this contact?</h5>
+                                    <img v-if="contact.picture !== ''" width="300" height="300" :src="`pictures/${deletePicture}`" />
+                                    <i v-else class="bi bi-question-circle-fill text-center" style="font-size: 10rem;"></i>                                        
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">
+                                        Close <i class="bi bi-x-circle-fill"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-danger" data-bs-dismiss="modal" @click="deleteContact(deleteId, deletePicture)">
+                                        Delete <i class="bi bi-person-x-fill"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="container w-50 mt-3" v-if="editContact">
+                <form method="post" @submit.prevent="updateContact" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <h4 class="text-center">Edit Contact</h4>
+                        <input type="hidden" name="id_edit" id="id_edit" :value="contact.id" />
+                    </div>
+                    <div class="mb-3">
+                        <input type="text" class="form-control" name="username_edit" id="username_edit" placeholder="Name"
+                        maxlength="30" required onblur="this.value=this.value.trim();" :value="contact.username" />
+                    </div>
+                    <div class="mb-3">                        
+                        <input type="text" class="form-control" name="phone_edit" id="phone_edit" placeholder="Phone"
+                            maxlength="15" required onblur="this.value=this.value.trim();" :value="contact.phone" />
+                    </div>
+                    <div class="mb-3">
+                        <input type="email" class="form-control" name="email_edit" id="email_edit" maxlength="50" placeholder="E-mail"
+                        onblur="this.value=this.value.trim().toLowerCase();" :value="contact.email" />
+                    </div>
+                    <div class="mb-3">                        
+                        <input type="file" class="form-control" name="picture_edit" id="picture_edit" />
+                    </div>
+                    <div class="mb-3 text-end">                        
+                        <img v-if="contact.picture !== ''" :src="`pictures/${contact.picture}`" width="100" height="100" />
+                        <i v-else class="bi bi-question-circle-fill" style="font-size: 7rem;"></i>
+                    </div>
+                    <div class="mb-3">                        
+                        <div v-if="error_messages" class="alert alert-danger">{{error_messages}}</div>
+                    </div>
+                    <button class="btn btn-danger mb-5" @click="hideEditForm">
+                        Cancel <i class="bi bi-x-circle-fill"></i>
+                    </button>
+                    <button type="submit" class="btn btn-primary float-end mb-5">
+                        Update <i class="bi bi-person-fill-check"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
+    <script src="scripts/app.js"></script>
+    
+</body>
+
+</html>
